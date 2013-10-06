@@ -1,6 +1,5 @@
 import numpy as np
 from collections import namedtuple
-from Queue import PriorityQueue
 
 BLANK = 0
 SEARCH_LIMIT = 80  # The shortest path for the 15 puzzle can always be found in 80 moves
@@ -33,72 +32,6 @@ class Node(namedtuple("Node", ("distance", "board", "parent"))):
     __slots__ = ()
 
 
-def moves(board):
-    """
-    `moves` generates the next set of moves for the given board.
-    """
-    ((i,), (j,)) = np.nonzero(board == BLANK)
-
-    moves = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-    newboard = np.copy(board)
-
-    for x, y in moves:
-        x += i
-        y += j
-        try:
-            newboard[i, j], newboard[x, y] = newboard[x, y], newboard[i, j]
-        except IndexError:
-            # Not all moves are valid, for example if the blank is in the
-            # corner, only two moves will be valid.
-            continue
-
-        yield newboard
-        newboard = np.copy(board)
-
-
 def hash_array(array):
     """Gives the hashed result of a numpy array."""
     return tuple(array.flat)
-
-
-def search(queue, visited):
-    """
-    `search` iteratively gets `Node`s out of `queue`, adding them to `visited`
-    as it goes. For each item, `moves` is called on the node's board. Each
-    move is added to the queue if it is not already in the visited set.
-    """
-    while not queue.empty():
-        node = queue.get()
-
-        if all(node.board.flat == SOLVED.flat):
-            return node
-
-        visited.add(hash_array(node.board))
-
-        for m in moves(node.board):
-            if node.distance + 1 < SEARCH_LIMIT and hash_array(m) not in visited:
-                queue.put(Node(node.distance + 1, m, node))
-
-
-def solve(board):
-    """
-    This is the top level function of the program. `board` is given to the
-    search function by placing it into an empty `PriorityQueue`.
-
-    A path to the result is returned.
-    """
-    start = Node(0, board, None)
-    queue = PriorityQueue()
-    queue.put(start)
-    visited = set()
-
-    result = search(queue, visited)
-
-    def getpath(node, path):
-        path.append(node)
-        if node.parent is not None:
-            return getpath(node.parent, path)
-        else:
-            return path
-
-    return getpath(result, [])
