@@ -1,14 +1,23 @@
 #!/usr/bin/env python
 
-from setuptools import setup
-from setuptools.command.test import test as TestCommand
+from distutils.core import setup, Command
+from distutils.extension import Extension
 import os
+import numpy as np
+from Cython.Distutils import build_ext
 
 
 os.environ['TEST_DATA_ROOT'] = os.path.abspath("tests/data")
 
 
-class CramTest(TestCommand):
+class CramTest(Command):
+    user_options = [ ]
+
+    def initialize_options(self):
+        self._dir = os.getcwd()
+
+    def finalize_options(self):
+        pass
 
     def run(self):
         import cram
@@ -29,6 +38,8 @@ setup(
     packages=["fifteen"],
     #scripts=["scripts/15puzz"],
     test_suite="tests.unit",
-    cmdclass={"cram": CramTest},
-    install_requires=["numpy"]
+    cmdclass={"cram": CramTest, "build_ext": build_ext},
+    ext_modules=[
+        Extension("_c15", ["fifteen/_c15.pyx"], [np.get_include()])
+    ]
 )
