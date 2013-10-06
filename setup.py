@@ -5,10 +5,26 @@ from distutils.extension import Extension
 import os
 import numpy as np
 from Cython.Distutils import build_ext
+from unittest import TextTestRunner, TestLoader
 
 
 os.environ['TEST_DATA_ROOT'] = os.path.abspath("tests/data")
 
+
+class UnitTest(Command):
+    def run(self):
+        import tests.unit.test_15p
+        loader = TestLoader()
+        t = TextTestRunner()
+        t.run(loader.loadTestsFromModule(tests.unit.test_15p))
+
+    user_options = []
+
+    def initialize_options(self):
+        self._dir = os.getcwd()
+
+    def finalize_options(self):
+        pass
 
 class CramTest(Command):
     user_options = [ ]
@@ -37,8 +53,7 @@ setup(
     author_email="echlebek@gmail.com",
     packages=["fifteen"],
     #scripts=["scripts/15puzz"],
-    test_suite="tests.unit",
-    cmdclass={"cram": CramTest, "build_ext": build_ext},
+    cmdclass={"cram": CramTest, "build_ext": build_ext, "test": UnitTest},
     ext_modules=[
         Extension("_c15", ["fifteen/_c15.pyx"], [np.get_include()])
     ]
