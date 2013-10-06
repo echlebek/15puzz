@@ -30,5 +30,5 @@ setup(
     #scripts=["scripts/15puzz"],
     test_suite="tests.unit",
     cmdclass={"cram": CramTest},
-    #install_requires=["numpy", "cython"]
+    install_requires=["numpy"]
 )
