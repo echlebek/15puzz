@@ -15,6 +15,11 @@ SOLVED = np.array(
 
 
 class Node(namedtuple("Node", ("distance", "board", "parent"))):
+    """
+    A `Node` represents a board state which has a `distance` away from
+    the starting board state. It has a reference to its `parent` state
+    so that the path back to the start can be discovered for any `Node`.
+    """
     def __lt__(self, other):
         """
         Necessary so that the numpy array doesn't get compared.
@@ -29,6 +34,9 @@ class Node(namedtuple("Node", ("distance", "board", "parent"))):
 
 
 def moves(board):
+    """
+    `moves` generates the next set of moves for the given board.
+    """
     ((i,), (j,)) = np.nonzero(board == BLANK)
 
     moves = [(0, 1), (1, 0), (0, -1), (-1, 0)]
@@ -40,6 +48,8 @@ def moves(board):
         try:
             newboard[i, j], newboard[x, y] = newboard[x, y], newboard[i, j]
         except IndexError:
+            # Not all moves are valid, for example if the blank is in the
+            # corner, only two moves will be valid.
             continue
 
         yield newboard
@@ -47,11 +57,17 @@ def moves(board):
 
 
 def hash_array(array):
+    """Gives the hashed result of a numpy array."""
     return tuple(array.flat)
 
 
 def search(queue, visited):
-    while True:
+    """
+    `search` iteratively gets `Node`s out of `queue`, adding them to `visited`
+    as it goes. For each item, `moves` is called on the node's board. Each
+    move is added to the queue if it is not already in the visited set.
+    """
+    while not queue.empty():
         node = queue.get()
 
         if all(node.board.flat == SOLVED.flat):
@@ -65,6 +81,12 @@ def search(queue, visited):
 
 
 def solve(board):
+    """
+    This is the top level function of the program. `board` is given to the
+    search function by placing it into an empty `PriorityQueue`.
+
+    A path to the result is returned.
+    """
     start = Node(0, board, None)
     queue = PriorityQueue()
     queue.put(start)
