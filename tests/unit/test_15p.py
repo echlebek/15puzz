@@ -54,8 +54,7 @@ class Test15Puzzle(unittest.TestCase):
 
         self.assertEquals(len(path), 3)
 
-    def test_solve(self):
-        from fifteen import solve
+    def _solve(self, solvefun):
 
         board = np.array([[5, 1, 2, 4],
                           [9, 6, 3, 8],
@@ -63,7 +62,16 @@ class Test15Puzzle(unittest.TestCase):
                           [13, BLANK, 15, 12]],
                          dtype=np.uint8)
 
-        self.assertEquals(len(solve(board)), 11)
+        self.assertEquals(len(solvefun(board)), 11)
+
+    def test_solve(self):
+        from fifteen import solve
+
+        self._solve(solve)
+
+    def test_solve2(self):
+        from fifteen import solve2
+        self._solve(solve2)
 
 
 if __name__ == "__main__":

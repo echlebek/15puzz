@@ -58,7 +58,7 @@ def moves(board):
 
 def hash_array(array):
     """Gives the hashed result of a numpy array."""
-    return tuple(array.flat)
+    return hash(tuple(array.flat))
 
 
 def search(queue, visited):
@@ -80,19 +80,13 @@ def search(queue, visited):
                 queue.put(Node(node.distance + 1, m, node))
 
 
-def solve(board):
-    """
-    This is the top level function of the program. `board` is given to the
-    search function by placing it into an empty `PriorityQueue`.
-
-    A path to the result is returned.
-    """
+def _solve(board, searchfun):
     start = Node(0, board, None)
     queue = PriorityQueue()
     queue.put(start)
     visited = set()
 
-    result = search(queue, visited)
+    result = searchfun(queue, visited)
 
     def getpath(node, path):
         path.append(node)
@@ -102,3 +96,19 @@ def solve(board):
             return path
 
     return getpath(result, [])
+
+
+def solve(board):
+    """
+    This is the top level function of the program. `board` is given to the
+    search function by placing it into an empty `PriorityQueue`.
+
+    A path to the result is returned.
+    """
+    return _solve(board, search)
+
+
+def solve2(board):
+    """Optimized version of solve"""
+    from _c15 import search2
+    return _solve(board, search2)
