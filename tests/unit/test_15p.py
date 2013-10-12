@@ -1,9 +1,7 @@
 import unittest
 import numpy as np
-from fifteen import SOLVED, BLANK, Node
-from fifteen.search import search, solve
+from fifteen import moves, SOLVED, BLANK, search, Node
 from Queue import PriorityQueue
-from _c15 import moves
 
 
 class Test15Puzzle(unittest.TestCase):
@@ -57,6 +55,8 @@ class Test15Puzzle(unittest.TestCase):
         self.assertEquals(len(path), 3)
 
     def test_solve(self):
+        from fifteen import solve
+
         board = np.array([[5, 1, 2, 4],
                           [9, 6, 3, 8],
                           [10, 14, 7, 11],
