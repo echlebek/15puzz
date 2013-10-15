@@ -3,18 +3,23 @@ from collections import namedtuple
 from Queue import PriorityQueue
 
 BLANK = 0
-SEARCH_LIMIT = 80  # The shortest path for the 15 puzzle can always be found in 80 moves
+SEARCH_LIMIT = 80  # The shortest path for the 15 puzzle can always be found in 80 movesD
 
 SOLVED = np.array(
     [[1, 2, 3, 4],
      [5, 6, 7, 8],
      [9, 10, 11, 12],
      [13, 14, 15, BLANK]],
-    dtype=np.uint8
+    dtype=np.int8
 )
 
 
-class Node(namedtuple("Node", ("distance", "board", "parent"))):
+import itertools
+# pairs for linear conflict
+#_pairs = itertools.combinations([0, 1, 2, 3], 2)
+
+
+class Node(namedtuple("Node", ("distance", "cost", "board", "parent"))):
     """
     A `Node` represents a board state which has a `distance` away from
     the starting board state. It has a reference to its `parent` state
@@ -25,7 +30,7 @@ class Node(namedtuple("Node", ("distance", "board", "parent"))):
         Necessary so that the numpy array doesn't get compared.
         We don't care about the ordering for equal distances.
         """
-        return self.distance < other.distance
+        return (self.distance + self.cost) < (other.distance + other.cost)
 
     def __repr__(self):
         return repr((self.distance, self.board))
@@ -35,7 +40,9 @@ class Node(namedtuple("Node", ("distance", "board", "parent"))):
 
 def moves(board):
     """
-    `moves` generates the next set of moves for the given board.
+    `moves` generates the next set of moves for the given board. It generates
+    multi-tile moves, eg, moves where the blank moves one or more spots in a
+    given direction.
     """
     ((i,), (j,)) = np.nonzero(board == BLANK)
 
@@ -45,16 +52,40 @@ def moves(board):
     for x, y in moves:
         x += i
         y += j
-        try:
-            newboard[i, j], newboard[x, y] = newboard[x, y], newboard[i, j]
-        except IndexError:
+        if x >= 0 and x < 4 and y >= 0 and y < 4:
             # Not all moves are valid, for example if the blank is in the
             # corner, only two moves will be valid.
-            continue
+            newboard[i, j], newboard[x, y] = newboard[x, y], newboard[i, j]
 
-        yield newboard
-        newboard = np.copy(board)
+            yield newboard
+            newboard = np.copy(board)
 
+
+def manhattan_distance(board):
+    result = 0
+
+    for i in range(4):
+        for j in range(4):
+            ((x,), (y,)) = np.nonzero(SOLVED == board[i, j])
+            result += abs(i - x) + abs(j - y)
+
+    return result
+
+
+def linear_conflict(board):
+    result = 0
+
+    pairs = itertools.combinations([0, 1, 2, 3], 2)
+    for row in range(4):
+        for j, k in pairs:
+            for line in SOLVED:
+                if ((board[row, k] < board[row, j])
+                    and abs(board[row, k] - board[row, j]) > 3
+                    and (board[row, j] != SOLVED[row, j] and board[row, k] != SOLVED[row, k])):
+
+                    result += 2
+
+    return result
 
 def hash_array(array):
     """Gives the hashed result of a numpy array."""
@@ -76,12 +107,15 @@ def search(queue, visited):
         visited.add(hash_array(node.board))
 
         for m in moves(node.board):
+            cost = manhattan_distance(m) + linear_conflict(m)
             if node.distance + 1 < SEARCH_LIMIT and hash_array(m) not in visited:
-                queue.put(Node(node.distance + 1, m, node))
+                queue.put(Node(node.distance + 1, cost, m, node))
 
 
 def _solve(board, searchfun):
-    start = Node(0, board, None)
+    cost = manhattan_distance(board) + linear_conflict(board)
+    print cost
+    start = Node(0, cost, board, None)
     queue = PriorityQueue()
     queue.put(start)
     visited = set()
@@ -94,6 +128,10 @@ def _solve(board, searchfun):
             return getpath(node.parent, path)
         else:
             return path
+
+    if queue.empty():
+        # Something went wrong with the search algorithm.
+        raise ValueError("Bad search")
 
     return getpath(result, [])
 
