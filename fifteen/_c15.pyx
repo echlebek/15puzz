@@ -1,3 +1,4 @@
+# cython: profile=True
 import numpy as np
 cimport numpy as np
 from collections import namedtuple
@@ -34,11 +35,15 @@ class Node(namedtuple("Node", ("distance", "cost", "board", "parent"))):
     __slots__ = ()
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
-cdef int manhattan_distance(np.ndarray[np.int8_t, ndim=2] board):
+cdef inline int manhattan_distance(np.ndarray[np.int8_t, ndim=2] board):
+    """Manhattan distance finds how many squares out of place each value in
+    `board` is. This is also known as "taxicab distance".
+    """
     cdef int result = 0
     cdef int i, j, x, y
-    cdef int* find_result = [0, 0]
+    cdef int* find_result = [0, 0]  # Store the indices of the find() result in here
 
     for i in range(4):
         for j in range(4):
@@ -50,31 +55,16 @@ cdef int manhattan_distance(np.ndarray[np.int8_t, ndim=2] board):
     return result
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
-cdef int linear_conflict(np.ndarray[np.int8_t, ndim=2] board):
-    cdef int result = 0
-    cdef int row, i, j
-
-    pairs = itertools.combinations([0, 1, 2, 3], 2)
-    for row in range(4):
-        for j, k in pairs:
-            for line in SOLVED:
-                if ((board[row, k] < board[row, j])
-                    and abs(board[row, k] - board[row, j]) > 3
-                    and (board[row, j] != SOLVED[row, j] and board[row, k] != SOLVED[row, k])):
-
-                    result += 2
-
-    return result
-
-
-@cython.boundscheck(False)
+@cython.profile(False)
 cdef inline void find(np.ndarray[np.int8_t, ndim=2] board, np.int8_t value, int *result):
+    """`find` finds the indices of `value` in `board` and stores them in `result`."""
     cdef int i, j
     for i in range(4):
         for j in range(4):
             if board[i, j] == value:
-                # We will always find the value.
+                # find will always find the value; the caller's risk to take.
                 result[0] = i
                 result[1] = j
                 return
@@ -86,25 +76,37 @@ cpdef search2(queue, set visited):
     as it goes. For each item, `moves` is called on the node's board. Each
     move is added to the queue if it is not already in the visited set.
     """
-    cdef int i, cost
+    cdef int i, j, cost
+    cdef int iter = 0
     while not queue.empty():
         node = queue.get()
 
-        # Check to see if move in consideration is equal to the goal.
-        for i in range(15):
-            if SOLVED.flat[i] != node.board.flat[i]:
-                break
-        else:
+        if solved(node.board):
             return node
 
-        visited.add(hash(tuple(node.board.flat)))
+        node.board.flags.writeable = False
+        visited.add(hash(node.board.data))
 
         for m in moves2(node.board):
             cost = manhattan_distance(m)
-            if hash(tuple(m.flat)) not in visited:
+            m.flags.writeable = False
+            if hash(m.data) not in visited:
                 queue.put(Node(node.distance + 1, cost, m, node))
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline bint solved(np.ndarray[np.int8_t, ndim=2] board):
+    """`solved` checks to see if the board in question is the solution."""
+    cdef int i, j
+    for i in range(4):
+        for j in range(4):
+            if board[i, j] != SOLVED[i, j]:
+                return False
+    return True
+
+
+@cython.wraparound(False)
 @cython.boundscheck(False)
 cdef list moves2(np.ndarray[np.int8_t, ndim=2] board):
     """

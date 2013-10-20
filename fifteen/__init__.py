@@ -2,6 +2,7 @@ import numpy as np
 from collections import namedtuple
 from Queue import PriorityQueue
 
+
 BLANK = 0
 SEARCH_LIMIT = 80  # The shortest path for the 15 puzzle can always be found in 80 movesD
 
@@ -14,16 +15,14 @@ SOLVED = np.array(
 )
 
 
-import itertools
-# pairs for linear conflict
-#_pairs = itertools.combinations([0, 1, 2, 3], 2)
-
-
 class Node(namedtuple("Node", ("distance", "cost", "board", "parent"))):
     """
     A `Node` represents a board state which has a `distance` away from
     the starting board state. It has a reference to its `parent` state
     so that the path back to the start can be discovered for any `Node`.
+
+    Every `Node` also has a `cost`, which is the result of the heuristic
+    function for the board.
     """
     def __lt__(self, other):
         """
@@ -39,8 +38,7 @@ class Node(namedtuple("Node", ("distance", "cost", "board", "parent"))):
 
 
 def moves(board):
-    """
-    `moves` generates the next set of moves for the given board. It generates
+    """`moves` generates the next set of moves for the given board. It generates
     multi-tile moves, eg, moves where the blank moves one or more spots in a
     given direction.
     """
@@ -72,24 +70,10 @@ def manhattan_distance(board):
     return result
 
 
-def linear_conflict(board):
-    result = 0
-
-    pairs = itertools.combinations([0, 1, 2, 3], 2)
-    for row in range(4):
-        for j, k in pairs:
-            for line in SOLVED:
-                if ((board[row, k] < board[row, j])
-                    and abs(board[row, k] - board[row, j]) > 3
-                    and (board[row, j] != SOLVED[row, j] and board[row, k] != SOLVED[row, k])):
-
-                    result += 2
-
-    return result
-
 def hash_array(array):
     """Gives the hashed result of a numpy array."""
-    return hash(tuple(array.flat))
+    array.flags.writeable = False
+    return hash(array.data)
 
 
 def search(queue, visited):
@@ -107,13 +91,13 @@ def search(queue, visited):
         visited.add(hash_array(node.board))
 
         for m in moves(node.board):
-            cost = manhattan_distance(m) + linear_conflict(m)
+            cost = manhattan_distance(m)
             if node.distance + 1 < SEARCH_LIMIT and hash_array(m) not in visited:
                 queue.put(Node(node.distance + 1, cost, m, node))
 
 
 def _solve(board, searchfun):
-    cost = manhattan_distance(board) + linear_conflict(board)
+    cost = manhattan_distance(board)
     print cost
     start = Node(0, cost, board, None)
     queue = PriorityQueue()
