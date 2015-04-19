@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-from distutils.core import setup, Command
-from distutils.extension import Extension
+# from distutils.core import setup, Command
+# from distutils.extension import Extension
+from setuptools import setup, Command
+from setuptools.extension import Extension
 import os
 import numpy as np
 from Cython.Distutils import build_ext
