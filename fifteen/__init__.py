@@ -97,8 +97,13 @@ def search(queue, visited):
 
 
 def _solve(board, searchfun):
+    """
+    This is the top level function of the program. `board` is given to the
+    search function by placing it into an empty `PriorityQueue`.
+
+    A path to the result is returned.
+    """
     cost = manhattan_distance(board)
-    print cost
     start = Node(0, cost, board, None)
     queue = PriorityQueue()
     queue.put(start)
@@ -121,12 +126,6 @@ def _solve(board, searchfun):
 
 
 def solve(board):
-    """
-    This is the top level function of the program. `board` is given to the
-    search function by placing it into an empty `PriorityQueue`.
-
-    A path to the result is returned.
-    """
     return _solve(board, search)
 
 

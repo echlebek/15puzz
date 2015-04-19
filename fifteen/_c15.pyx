@@ -35,9 +35,7 @@ class Node(namedtuple("Node", ("distance", "cost", "board", "parent"))):
     __slots__ = ()
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef inline int manhattan_distance(np.ndarray[np.int8_t, ndim=2] board):
+cdef int manhattan_distance(np.ndarray[np.int8_t, ndim=2] board):
     """Manhattan distance finds how many squares out of place each value in
     `board` is. This is also known as "taxicab distance".
     """
@@ -55,8 +53,6 @@ cdef inline int manhattan_distance(np.ndarray[np.int8_t, ndim=2] board):
     return result
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
 @cython.profile(False)
 cdef inline void find(np.ndarray[np.int8_t, ndim=2] board, np.int8_t value, int *result):
     """`find` finds the indices of `value` in `board` and stores them in `result`."""
@@ -94,9 +90,7 @@ cpdef search2(queue, set visited):
                 queue.put(Node(node.distance + 1, cost, m, node))
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef inline bint solved(np.ndarray[np.int8_t, ndim=2] board):
+cdef bint solved(np.ndarray[np.int8_t, ndim=2] board):
     """`solved` checks to see if the board in question is the solution."""
     cdef int i, j
     for i in range(4):
@@ -106,8 +100,6 @@ cdef inline bint solved(np.ndarray[np.int8_t, ndim=2] board):
     return True
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
 cdef list moves2(np.ndarray[np.int8_t, ndim=2] board):
     """
     `moves` generates the next set of moves for the given board.
