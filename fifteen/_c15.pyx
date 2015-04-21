@@ -80,13 +80,13 @@ cpdef search2(queue, set visited):
         if solved(node.board):
             return node
 
-        node.board.flags.writeable = False
-        visited.add(hash(node.board.data))
+        # node.board.flags.writeable = False
+        visited.add(str(node.board.data))
 
         for m in moves2(node.board):
             cost = manhattan_distance(m)
-            m.flags.writeable = False
-            if hash(m.data) not in visited:
+            # m.flags.writeable = False
+            if str(m.data) not in visited:
                 queue.put(Node(node.distance + 1, cost, m, node))
 
 
