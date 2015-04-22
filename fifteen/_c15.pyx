@@ -16,9 +16,11 @@ SOLVED = np.array(
     dtype=np.int8
 )
 
+
 cdef struct index:
     int x
     int y
+
 
 class Node(namedtuple("Node", ("distance", "cost", "board", "parent"))):
     """
@@ -39,36 +41,26 @@ class Node(namedtuple("Node", ("distance", "cost", "board", "parent"))):
     __slots__ = ()
 
 
-cdef int manhattan_distance(np.ndarray[np.int8_t, ndim=2] board):
+cdef int manhattan_distance(np.ndarray[np.int8_t, ndim=2] board,
+                            np.ndarray[np.int8_t, ndim=2] solved_board):
     """Manhattan distance finds how many squares out of place each value in
     `board` is. This is also known as "taxicab distance".
     """
     cdef int result = 0
-    cdef int i, j, x, y
-    cdef index find_result
+    cdef int i, j
+    cdef int x, y
 
+    # For each tile in the game
     for i in range(4):
         for j in range(4):
-            find_result = find(SOLVED, board[i, j])
-            x = find_result.x
-            y = find_result.y
-            result += abs(i - x) + abs(j - y)
+
+            # For each tile in the solved game
+            for x in range(4):
+                for y in range(4):
+                    if board[i, j] == solved_board[x, y]:
+                        result += abs(i - x) + abs(j - y)
 
     return result
-
-
-@cython.profile(False)
-cdef inline index find(np.ndarray[np.int8_t, ndim=2] board, np.int8_t value):
-    """`find` finds the indices of `value` in `board` and stores them in `result`."""
-    cdef int i, j
-    cdef index result
-    for i in range(4):
-        for j in range(4):
-            if board[i, j] == value:
-                # find will always find the value; the caller's risk to take.
-                result.x = i
-                result.y = j
-                return result
 
 
 cpdef search2(queue, set visited):
@@ -79,27 +71,31 @@ cpdef search2(queue, set visited):
     """
     cdef int i, j, cost
     cdef int iter = 0
+    cdef np.ndarray[np.int8_t, ndim=2] solved_board
+
+    solved_board = SOLVED
+
     while not queue.empty():
         node = queue.get()
 
-        if solved(node.board, SOLVED):
+        if board_equals(node.board, solved_board):
             return node
 
         visited.add(str(node.board.data))
 
         for m in moves2(node.board):
-            cost = manhattan_distance(m)
+            cost = manhattan_distance(m, solved_board)
             if str(m.data) not in visited:
                 queue.put(Node(node.distance + 1, cost, m, node))
 
 
-cdef bint solved(np.ndarray[np.int8_t, ndim=2] board,
-                 np.ndarray[np.int8_t, ndim=2] solved_board):
-    """`solved` checks to see if the board in question is the solution."""
+cdef bint board_equals(np.ndarray[np.int8_t, ndim=2] a,
+                       np.ndarray[np.int8_t, ndim=2] b):
+    """`board_equals` checks to see if the boards are equal"""
     cdef int i, j
     for i in range(4):
         for j in range(4):
-            if board[i, j] != solved_board[i, j]:
+            if a[i, j] != b[i, j]:
                 return False
     return True
 
@@ -109,14 +105,18 @@ cdef list moves2(np.ndarray[np.int8_t, ndim=2] board):
     `moves` generates the next set of moves for the given board.
     """
     cdef int i, j, x, y
-    cdef index find_result
     cdef np.ndarray[np.int8_t, ndim=2] newboard
     cdef index[4] moves = [index(0, 1), index(1, 0), index(0, -1), index(-1, 0)]
     cdef np.int8_t t1, t2
 
-    find_result = find(board, BLANK)
-    i = find_result.x
-    j = find_result.y
+    for i in range(4):
+        for j in range(4):
+            if board[i, j] == BLANK:
+                # iteration ends, i and j now point to the blank tile
+                break
+        else:
+            continue
+        break
 
     newboard = np.copy(board)
     cdef list results = []
