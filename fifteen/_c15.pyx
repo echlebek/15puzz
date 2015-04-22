@@ -16,6 +16,10 @@ SOLVED = np.array(
     dtype=np.int8
 )
 
+cdef struct index:
+    int x
+    int y
+
 class Node(namedtuple("Node", ("distance", "cost", "board", "parent"))):
     """
     A `Node` represents a board state which has a `distance` away from
@@ -41,29 +45,30 @@ cdef int manhattan_distance(np.ndarray[np.int8_t, ndim=2] board):
     """
     cdef int result = 0
     cdef int i, j, x, y
-    cdef int* find_result = [0, 0]  # Store the indices of the find() result in here
+    cdef index find_result
 
     for i in range(4):
         for j in range(4):
-            find(SOLVED, board[i, j], find_result)
-            x = find_result[0]
-            y = find_result[1]
+            find_result = find(SOLVED, board[i, j])
+            x = find_result.x
+            y = find_result.y
             result += abs(i - x) + abs(j - y)
 
     return result
 
 
 @cython.profile(False)
-cdef inline void find(np.ndarray[np.int8_t, ndim=2] board, np.int8_t value, int *result):
+cdef inline index find(np.ndarray[np.int8_t, ndim=2] board, np.int8_t value):
     """`find` finds the indices of `value` in `board` and stores them in `result`."""
     cdef int i, j
+    cdef index result
     for i in range(4):
         for j in range(4):
             if board[i, j] == value:
                 # find will always find the value; the caller's risk to take.
-                result[0] = i
-                result[1] = j
-                return
+                result.x = i
+                result.y = j
+                return result
 
 
 cpdef search2(queue, set visited):
@@ -77,25 +82,24 @@ cpdef search2(queue, set visited):
     while not queue.empty():
         node = queue.get()
 
-        if solved(node.board):
+        if solved(node.board, SOLVED):
             return node
 
-        # node.board.flags.writeable = False
         visited.add(str(node.board.data))
 
         for m in moves2(node.board):
             cost = manhattan_distance(m)
-            # m.flags.writeable = False
             if str(m.data) not in visited:
                 queue.put(Node(node.distance + 1, cost, m, node))
 
 
-cdef bint solved(np.ndarray[np.int8_t, ndim=2] board):
+cdef bint solved(np.ndarray[np.int8_t, ndim=2] board,
+                 np.ndarray[np.int8_t, ndim=2] solved_board):
     """`solved` checks to see if the board in question is the solution."""
     cdef int i, j
     for i in range(4):
         for j in range(4):
-            if board[i, j] != SOLVED[i, j]:
+            if board[i, j] != solved_board[i, j]:
                 return False
     return True
 
@@ -105,24 +109,29 @@ cdef list moves2(np.ndarray[np.int8_t, ndim=2] board):
     `moves` generates the next set of moves for the given board.
     """
     cdef int i, j, x, y
+    cdef index find_result
+    cdef np.ndarray[np.int8_t, ndim=2] newboard
+    cdef index[4] moves = [index(0, 1), index(1, 0), index(0, -1), index(-1, 0)]
+    cdef np.int8_t t1, t2
 
-    cdef int* find_result = [0, 0]
-    find(board, BLANK, find_result)
-    i = find_result[0]
-    j = find_result[1]
-
-    moves = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    find_result = find(board, BLANK)
+    i = find_result.x
+    j = find_result.y
 
     newboard = np.copy(board)
     cdef list results = []
 
     for m in range(4):
-        x = moves[m][0] + i
-        y = moves[m][1] + j
+        x = moves[m].x + i
+        y = moves[m].y + j
         if x >= 0 and x < 4 and y >= 0 and y < 4:
             # Not all moves are valid, for example if the blank is in the
             # corner, only two moves will be valid.
-            newboard[i, j], newboard[x, y] = newboard[x, y], newboard[i, j]
+            t1 = newboard[i, j]
+            t2 = newboard[x, y]
+
+            newboard[x, y] = t1
+            newboard[i, j] = t2
 
             results.append(newboard)
             newboard = np.copy(board)
