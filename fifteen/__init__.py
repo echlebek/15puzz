@@ -69,9 +69,9 @@ def manhattan_distance(board):
                     if board[i, j] == SOLVED[x, y]:
                         result += abs(i - x) + abs(j - y)
                         break
-                    else:
-                        continue
-                    break
+                else:
+                    continue
+                break
 
     return result
 
