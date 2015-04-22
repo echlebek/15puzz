@@ -64,8 +64,14 @@ def manhattan_distance(board):
 
     for i in range(4):
         for j in range(4):
-            ((x,), (y,)) = np.nonzero(SOLVED == board[i, j])
-            result += abs(i - x) + abs(j - y)
+            for x in range(4):
+                for y in range(4):
+                    if board[i, j] == SOLVED[x, y]:
+                        result += abs(i - x) + abs(j - y)
+                        break
+                    else:
+                        continue
+                    break
 
     return result
 

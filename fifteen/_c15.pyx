@@ -59,6 +59,10 @@ cdef int manhattan_distance(np.ndarray[np.int8_t, ndim=2] board,
                 for y in range(4):
                     if board[i, j] == solved_board[x, y]:
                         result += abs(i - x) + abs(j - y)
+                        break
+                else:
+                    continue
+                break
 
     return result
 
